@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 34" width="34" height="34" fill="none">
+  <defs>
+    <linearGradient id="cartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <filter id="cartGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.2" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <g filter="url(#cartGlow)">
+    <path d="M4 6h4l3.4 13.5a1.5 1.5 0 0 0 1.45 1.1h12.5a1.5 1.5 0 0 0 1.45-1.1L29 9.5H8.8" stroke="url(#cartGrad)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="14" cy="26" r="2.2" fill="url(#cartGrad)"/>
+    <circle cx="24.5" cy="26" r="2.2" fill="url(#cartGrad)"/>
+    <path d="M28 3l.8 2.2L31 6l-2.2.8L28 9l-.8-2.2L25 6l2.2-.8z" fill="#38BDF8"/>
+  </g>
+</svg>

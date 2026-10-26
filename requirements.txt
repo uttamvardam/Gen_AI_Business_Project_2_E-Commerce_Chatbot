@@ -1,0 +1,7 @@
+streamlit
+groq
+chromadb
+sentence-transformers
+semantic-router
+pandas
+python-dotenv
