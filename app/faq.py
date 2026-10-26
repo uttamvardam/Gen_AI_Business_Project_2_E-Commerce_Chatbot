@@ -13,8 +13,31 @@ ef = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name='sentence-transformers/all-MiniLM-L6-v2'
         )
 
+def get_groq_api_key():
+    key = os.environ.get("GROQ_API_KEY")
+    if not key:
+        try:
+            import streamlit as st
+            key = st.secrets.get("GROQ_API_KEY")
+        except Exception:
+            pass
+    return key
+
+def get_groq_model():
+    model = os.environ.get("GROQ_MODEL")
+    if not model:
+        try:
+            import streamlit as st
+            model = st.secrets.get("GROQ_MODEL")
+        except Exception:
+            pass
+    return model or "openai/gpt-oss-20b"
+
+def get_groq_client():
+    api_key = get_groq_api_key()
+    return Groq(api_key=api_key) if api_key else None
+
 chroma_client = chromadb.Client()
-groq_client = Groq()
 collection_name_faq = 'faqs'
 
 
@@ -59,8 +82,12 @@ def generate_answer(query, context):
     
     QUESTION: {query}
     '''
-    completion = groq_client.chat.completions.create(
-        model=os.environ['GROQ_MODEL'],
+    client = get_groq_client()
+    if not client:
+        return "⚠️ GROQ_API_KEY is not configured. Please add your GROQ_API_KEY to your Streamlit Cloud Secrets or .env file."
+    
+    completion = client.chat.completions.create(
+        model=get_groq_model(),
         messages=[
             {
                 'role': 'user',

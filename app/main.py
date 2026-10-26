@@ -1,10 +1,21 @@
+import os
+import streamlit as st
 from dotenv import load_dotenv
+
 load_dotenv()
+
+# Sync secrets from Streamlit Cloud to os.environ if available
+try:
+    if hasattr(st, "secrets"):
+        for sec_key, sec_val in st.secrets.items():
+            if isinstance(sec_val, str) and sec_key not in os.environ:
+                os.environ[sec_key] = sec_val
+except Exception:
+    pass
 
 import base64
 import re
 from pathlib import Path
-import streamlit as st
 import streamlit.components.v1 as components
 from faq import ingest_faq_data, faq_chain
 from sql import sql_chain

@@ -7,7 +7,29 @@ from pathlib import Path
 
 db_path = Path(__file__).parent / "db.sqlite"
 
-client_sql = Groq()
+def get_groq_api_key():
+    key = os.environ.get("GROQ_API_KEY")
+    if not key:
+        try:
+            import streamlit as st
+            key = st.secrets.get("GROQ_API_KEY")
+        except Exception:
+            pass
+    return key
+
+def get_groq_model():
+    model = os.environ.get("GROQ_MODEL")
+    if not model:
+        try:
+            import streamlit as st
+            model = st.secrets.get("GROQ_MODEL")
+        except Exception:
+            pass
+    return model or "openai/gpt-oss-20b"
+
+def get_groq_client():
+    api_key = get_groq_api_key()
+    return Groq(api_key=api_key) if api_key else None
 
 sql_prompt = """You are an expert in understanding the database schema and generating SQL queries for a natural language question asked
 pertaining to the data you have. The schema is provided in the schema tags. 
@@ -45,12 +67,15 @@ For example:
 
 
 def generate_sql_query(question):
-    chat_completion = client_sql.chat.completions.create(
+    client = get_groq_client()
+    if not client:
+        return "<SQL></SQL>"
+    chat_completion = client.chat.completions.create(
         messages=[
             {"role": "system", "content": sql_prompt},
             {"role": "user", "content": question},
         ],
-        model=os.environ['GROQ_MODEL'],
+        model=get_groq_model(),
         temperature=0.2,
         max_tokens=1024
     )
@@ -65,12 +90,15 @@ def run_query(query):
 
 
 def data_comprehension(question, context):
-    chat_completion = client_sql.chat.completions.create(
+    client = get_groq_client()
+    if not client:
+        return "⚠️ GROQ_API_KEY is not configured. Please add GROQ_API_KEY to your Streamlit Cloud Secrets or .env file."
+    chat_completion = client.chat.completions.create(
         messages=[
             {"role": "system", "content": comprehension_prompt},
             {"role": "user", "content": f"QUESTION: {question}. DATA: {context}"},
         ],
-        model=os.environ['GROQ_MODEL'],
+        model=get_groq_model(),
         temperature=0.2,
     )
     return chat_completion.choices[0].message.content
