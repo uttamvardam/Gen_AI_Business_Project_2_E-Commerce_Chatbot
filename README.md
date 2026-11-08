@@ -3,6 +3,10 @@
 An intelligent chatbot for an online shoe store, powered by **Groq AI**, **ChromaDB**, and **Streamlit**. The bot can answer both general store policy questions and product-specific queries using natural language.
 
 ![CartIQ UI](app/resources/image.png)
+
+### 🚀 Live Demo
+
+Try the application live: https://genaibusinessproject2e-commercechatbotgit-oejrdbeuqclxuixwqrkt.streamlit.app/
 ---
 
 ## 🤖 What It Does
