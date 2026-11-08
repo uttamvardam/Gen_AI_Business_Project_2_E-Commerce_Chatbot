@@ -20,6 +20,10 @@ venv/
 env/
 ENV/
 
+# uv package manager
+uv/
+.uv/
+
 # Editor & IDE configs
 .vscode/
 .idea/
