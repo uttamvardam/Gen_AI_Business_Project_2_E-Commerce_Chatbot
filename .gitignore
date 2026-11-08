@@ -23,6 +23,7 @@ ENV/
 # uv package manager
 uv/
 .uv/
+uv
 
 # Editor & IDE configs
 .vscode/
