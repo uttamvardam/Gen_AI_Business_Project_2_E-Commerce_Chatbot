@@ -25,7 +25,9 @@ def get_groq_model():
             model = st.secrets.get("GROQ_MODEL")
         except Exception:
             pass
-    return model or "llama-3.3-70b-versatile"
+    if not model or "llama-3.3" in str(model):
+        return "openai/gpt-oss-20b"
+    return model
 
 def get_groq_client():
     api_key = get_groq_api_key()
@@ -70,38 +72,67 @@ def generate_sql_query(question):
     client = get_groq_client()
     if not client:
         return "<SQL></SQL>"
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {"role": "system", "content": sql_prompt},
-            {"role": "user", "content": question},
-        ],
-        model=get_groq_model(),
-        temperature=0.2,
-        max_tokens=1024
-    )
-    return chat_completion.choices[0].message.content
+    
+    models_to_try = [get_groq_model(), "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+    seen = set()
+    for m in models_to_try:
+        if m in seen:
+            continue
+        seen.add(m)
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": sql_prompt},
+                    {"role": "user", "content": question},
+                ],
+                model=m,
+                temperature=0.2,
+                max_tokens=1024
+            )
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            print(f"Failed with model {m}: {e}")
+            continue
+    return "<SQL></SQL>"
 
 
 def run_query(query):
-    if query.strip().upper().startswith('SELECT'):
-        with sqlite3.connect(db_path) as conn:
-            df = pd.read_sql_query(query, conn)
-            return df
+    try:
+        clean = query.strip()
+        if clean.upper().startswith('SELECT'):
+            with sqlite3.connect(db_path) as conn:
+                df = pd.read_sql_query(clean, conn)
+                return df
+    except Exception as e:
+        print(f"Error running SQL query '{query}': {e}")
+        return None
 
 
 def data_comprehension(question, context):
     client = get_groq_client()
     if not client:
         return "⚠️ GROQ_API_KEY is not configured. Please add GROQ_API_KEY to your Streamlit Cloud Secrets or .env file."
-    chat_completion = client.chat.completions.create(
-        messages=[
-            {"role": "system", "content": comprehension_prompt},
-            {"role": "user", "content": f"QUESTION: {question}. DATA: {context}"},
-        ],
-        model=get_groq_model(),
-        temperature=0.2,
-    )
-    return chat_completion.choices[0].message.content
+    
+    models_to_try = [get_groq_model(), "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+    seen = set()
+    for m in models_to_try:
+        if m in seen:
+            continue
+        seen.add(m)
+        try:
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {"role": "system", "content": comprehension_prompt},
+                    {"role": "user", "content": f"QUESTION: {question}. DATA: {context}"},
+                ],
+                model=m,
+                temperature=0.2,
+            )
+            return chat_completion.choices[0].message.content
+        except Exception as e:
+            print(f"Data comprehension failed with model {m}: {e}")
+            continue
+    return "Sorry, I encountered an issue generating the product recommendations. Please try again."
 
 
 def sql_chain(question):
@@ -110,13 +141,23 @@ def sql_chain(question):
     matches = re.findall(pattern, sql_query, re.DOTALL)
 
     if len(matches) == 0:
-        return "Sorry, LLM is not able to generate a query for your question"
+        return "Sorry, I couldn't understand or create a search query for your request. Please try phrasing it differently."
 
-    response = run_query(matches[0].strip())
+    raw_sql = matches[0].strip()
+    # Strip markdown code blocks if generated
+    raw_sql = re.sub(r"^```sql\s*", "", raw_sql, flags=re.IGNORECASE)
+    raw_sql = re.sub(r"^```\s*", "", raw_sql)
+    raw_sql = re.sub(r"\s*```$", "", raw_sql).strip()
+
+    response = run_query(raw_sql)
     if response is None:
-        return "Sorry, there was a problem executing SQL query"
+        return "Sorry, there was a problem querying the product database."
 
-    context = response.to_dict(orient='records')
+    if response.empty:
+        return "No products found matching your search. Try searching for a different brand or price range!"
+
+    # Cap to top 10 products so context payload never exceeds Groq rate or token limits
+    context = response.head(10).to_dict(orient='records')
     answer = data_comprehension(question, context)
     return answer
 

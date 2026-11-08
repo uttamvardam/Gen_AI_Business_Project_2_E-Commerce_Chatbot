@@ -31,7 +31,9 @@ def get_groq_model():
             model = st.secrets.get("GROQ_MODEL")
         except Exception:
             pass
-    return model or "llama-3.3-70b-versatile"
+    if not model or "llama-3.3" in str(model):
+        return "openai/gpt-oss-20b"
+    return model
 
 def get_groq_client():
     api_key = get_groq_api_key()
@@ -86,16 +88,27 @@ def generate_answer(query, context):
     if not client:
         return "⚠️ GROQ_API_KEY is not configured. Please add your GROQ_API_KEY to your Streamlit Cloud Secrets or .env file."
     
-    completion = client.chat.completions.create(
-        model=get_groq_model(),
-        messages=[
-            {
-                'role': 'user',
-                'content': prompt
-            }
-        ]
-    )
-    return completion.choices[0].message.content
+    models_to_try = [get_groq_model(), "openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"]
+    seen = set()
+    for m in models_to_try:
+        if m in seen:
+            continue
+        seen.add(m)
+        try:
+            completion = client.chat.completions.create(
+                model=m,
+                messages=[
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ]
+            )
+            return completion.choices[0].message.content
+        except Exception as e:
+            print(f"FAQ generate_answer failed with model {m}: {e}")
+            continue
+    return "Sorry, I couldn't generate an answer right now. Please try again."
 
 
 def faq_chain(query):
