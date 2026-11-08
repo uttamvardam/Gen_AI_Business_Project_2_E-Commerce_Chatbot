@@ -7,6 +7,7 @@ An intelligent chatbot for an online shoe store, powered by **Groq AI**, **Chrom
 ### 🚀 Live Demo
 
 Try the application live: https://genaibusinessproject2e-commercechatbotgit-oejrdbeuqclxuixwqrkt.streamlit.app/
+
 ---
 
 ## 🤖 What It Does
