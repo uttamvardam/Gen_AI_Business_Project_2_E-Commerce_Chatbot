@@ -31,7 +31,7 @@ def get_groq_model():
             model = st.secrets.get("GROQ_MODEL")
         except Exception:
             pass
-    return model or "openai/gpt-oss-20b"
+    return model or "llama-3.3-70b-versatile"
 
 def get_groq_client():
     api_key = get_groq_api_key()
