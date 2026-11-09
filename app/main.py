@@ -38,13 +38,21 @@ faqs_path = Path(__file__).parent / "resources/faq_data.csv"
 ingest_faq_data(faqs_path)
 
 def ask(query):
-    route = router(query).name
+    route_obj = router(query)
+    route = getattr(route_obj, 'name', None)
+    
     if route == 'faq':
-        return faq_chain(query)
-    elif route == 'sql':
-        return sql_chain(query)
+        answer = faq_chain(query)
+        # If FAQ couldn't find an answer ("I don't know"), fall back to SQL search
+        norm_ans = answer.strip().lower().rstrip(".").strip()
+        if "i don't know" in norm_ans or "i do not know" in norm_ans:
+            sql_ans = sql_chain(query)
+            if not sql_ans.strip().lower().startswith("sorry, i couldn't understand"):
+                return sql_ans
+        return answer
     else:
-        return f"Route {route} not implemented yet"
+        # Default all product search & unclassified queries to SQL chain
+        return sql_chain(query)
 
 # ---------------------------------------------------------
 # 2. Page Configuration & Asset Loading
